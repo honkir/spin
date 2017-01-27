@@ -492,10 +492,34 @@ class Daemon(QtCore.QObject):
         elif mode == "calibrate":
             print(" *** Calibrating Wacom Pen *** ")
             self.calibrate()
+        elif mode == "touchenable":
+            if self.touchy == False :
+                self.touchy = True
+                self.stylus_proximity_switch(status=True)
+                self.touchscreen_switch(status=True)
+                log.info("Touch screen enabled")
+                os.system('notify-send "Touch Screen Enabled"')
+        elif mode == "touchdisable":
+            if self.touchy :
+                self.touchy = False
+                self.stylus_proximity_switch(status=False)
+                self.touchscreen_switch(status=False)
+                log.info("Touch screen disabled")
+                os.system('notify-send "Touch Screen Disabled"')
+        elif mode == "rotatelock":
+            if self.locked == False :
+                self.locked = True
+                log.info("Rotation lock enabled")
+                os.system('notify-send "Rotation Lock Enabled"')
+        elif mode == "rotateunlock":
+            if self.locked :
+                self.locked = False
+                log.info("Rotation lock disabled")
+                os.system('notify-send "Rotation Lock Disabled"')
         else:
             log.error("Unknown mode \"{mode}\" requested".format(mode = mode))
             sys.exit()
-        time.sleep(2)  # Switching modes too fast seems to cause trobule
+        time.sleep(0.1)  # Switching modes too fast seems to cause trobule
 
     def set_calibration(self):
         ''' Set the Wacom calibration for the current orientation '''
@@ -516,18 +540,22 @@ class Daemon(QtCore.QObject):
 def get_inputs():
     log.info("Audit Inputs:")
     input_devices = subprocess.Popen(
-        ["xinput", "--list"],
+        ["xinput", "list", "--name-only"],
         stdin = subprocess.PIPE,
         stdout = subprocess.PIPE,
         stderr = subprocess.PIPE
     ).communicate()[0]
     devices_and_keyphrases = {
         "touchscreen": ["SYNAPTICS Synaptics Touch Digitizer V04",
-                        "ELAN Touchscreen"],
+                        "ELAN Touchscreen",
+                        "Wacom Co.,Ltd. Pen and multitouch sensor Finger touch"],
         "touchpad":    ["PS/2 Synaptics TouchPad",
-                        "SynPS/2 Synaptics TouchPad"],
-        "nipple":      ["TPPS/2 IBM TrackPoint"],
-        "stylus":      ["Wacom ISDv4 EC Pen stylus"]
+                        "SynPS/2 Synaptics TouchPad",
+                        "AlpsPS/2 ALPS DualPoint TouchPad"],
+        "nipple":      ["TPPS/2 IBM TrackPoint",
+                        "AlpsPS/2 ALPS DualPoint Stick"],
+        "stylus":      ["Wacom ISDv4 EC Pen stylus",
+                        "Wacom Co.,Ltd. Pen and multitouch sensor Pen stylus"]
     }
     device_names = {}
     for device, keyphrases in devices_and_keyphrases.iteritems():
