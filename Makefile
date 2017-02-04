@@ -38,6 +38,8 @@ install:
 	install -m 644 $(addprefix package/applications/,$(APPS)) $(APPS_DIR)
 	install -d $(BIN_DIR)
 	install -m 755 $(BIN) $(BIN_DIR)
+	install -d $(INSTALL_PATH)/etc/init.d
+	install -m 755 etc/yoga-spin $(INSTALL_PATH)/etc/init.d
 	dpkg-deb -b $(INSTALL_PATH)
 
 clean:
