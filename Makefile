@@ -38,8 +38,8 @@ install:
 	install -m 644 $(addprefix package/applications/,$(APPS)) $(APPS_DIR)
 	install -d $(BIN_DIR)
 	install -m 755 $(BIN) $(BIN_DIR)
-	install -d $(INSTALL_PATH)/etc/init.d
-	install -m 755 etc/yoga-spin $(INSTALL_PATH)/etc/init.d
+	install -d $(INSTALL_PATH)/etc/xdg/autostart
+	install -m 755 package/applications/yoga-spin-autostart.desktop $(INSTALL_PATH)/etc/xdg/autostart
 	dpkg-deb -b $(INSTALL_PATH)
 
 clean:
