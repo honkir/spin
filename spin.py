@@ -79,7 +79,7 @@ class Calibration():
         ''' Return the current screen orientation '''
         xrandr = subprocess.Popen(['xrandr', '-q', '--verbose'], stdout=subprocess.PIPE)
         for line in xrandr.stdout:
-            if "eDP1" in line:
+            if "eDP-1" in line:
                 return( line.split()[5])
         print('Warning! Unable to detect screen orientation.')
         return('normal')
@@ -147,6 +147,8 @@ class Calibration():
         #                                      '--precalib', str(old_cal[0]), str(old_cal[2]), str(old_cal[1]), str(old_cal[3])],
         #                                      stdout=subprocess.PIPE)
         cal = old_cal
+        if not len(cal):
+            cal = [0, 0, 0, 0]
         for line in xinput_calibrator.stdout:
             if "MinX" in line:
                 cal[0]  = int(line.split()[2].split('"')[1])
@@ -241,29 +243,43 @@ class Daemon(QtCore.QObject):
             sys.exit()
 
     def touchscreen_orientation(self, orientation = None):
+        coordinate_matrix = {
+            "left":     "0 -1 1 1 0 0 0 0 1",
+            "right":    "0 1 0 -1 0 1 0 0 1",
+            "inverted": "-1 0 1 0 -1 1 0 0 1",
+            "normal":   "1 0 0 0 1 0 0 0 1"
+        }
+
+        if not coordinate_matrix.has_key(orientation):
+            log.error("Unknown touchscreen orientation \"{0}\" requested".format(orientation))
+            return None
+
+        # Waiting for the touchscreen to reconnect, after the screen rotates.
+        while not self.is_touchscreen_alive():
+            time.sleep(0.5)
+
         if "touchscreen" in self.device_names:
-            coordinate_matrix = {
-                "left":     "0 -1 1 1 0 0 0 0 1",
-                "right":    "0 1 0 -1 0 1 0 0 1",
-                "inverted": "-1 0 1 0 -1 1 0 0 1",
-                "normal":   "1 0 0 0 1 0 0 0 1"
-            }
-            # Waiting for the touchscreen to reconnect, after the screen rotates.
-            while not self.is_touchscreen_alive():
-                time.sleep(0.5)
-            if coordinate_matrix.has_key(orientation):
-                log.info("Orienting touchscreen to {0}".format(orientation))
-                engage_command(
-                    "xinput set-prop \"{device_name}\" \"Coordinate Transformation Matrix\" {matrix}".format(
-                        device_name = self.device_names["touchscreen"],
-                        matrix = coordinate_matrix[orientation]
-                    )
+            log.info("Orienting touchscreen to {0}".format(orientation))
+            engage_command(
+                "xinput set-prop \"{device_name}\" \"Coordinate Transformation Matrix\" {matrix}".format(
+                    device_name = self.device_names["touchscreen"],
+                    matrix = coordinate_matrix[orientation]
                 )
-            else:
-                log.error("Unknown touchscreen orientation \"{0}\" requested".format(orientation))
-                sys.exit()
+            )
         else:
             log.debug("Touchscreen orientation unchanged")
+
+        if "stylus" in self.device_names:
+            log.info("Orienting stylus to {0}".format(orientation))
+            engage_command(
+                "xinput set-prop \"{device_name}\" \"Coordinate Transformation Matrix\" {matrix}".format(
+                    device_name = self.device_names["stylus"],
+                    matrix = coordinate_matrix[orientation]
+                )
+            )
+        else:
+            log.debug("Stylus orientation unchanged")
+    #enddef
 
     def touchscreen_switch(self, status = None):
         if "touchscreen" in self.device_names:
@@ -748,11 +764,11 @@ def main():
         send_command("toggletouch")
     elif args.calibrate:
         log.info("Calibrating the Wacom pen")
-        cal = Calibration('Wacom ISDv4 EC Pen stylus')
+        cal = Calibration('Wacom Co.,Ltd. Pen and multitouch sensor Pen stylus')
         cal.calibrate()
     elif args.reset:
         log.info("Resetting the Wacom pen calibration")
-        cal = Calibration('Wacom ISDv4 EC Pen stylus')
+        cal = Calibration('Wacom Co.,Ltd. Pen and multitouch sensor Pen stylus')
         cal.reset_calibration()
     else:
         log.info("No arguments passed. Doing nothing.")
